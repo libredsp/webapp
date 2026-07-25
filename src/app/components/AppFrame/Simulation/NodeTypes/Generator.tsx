@@ -6,9 +6,7 @@ export class Generator extends NodeBase {
     super(id, displayName, x, y, BlockType.GENERATOR, width, height);
     this.value = value;
   }
-  execute(u = [{ y: 0, t: 0, src: null }]): Signal {
-    return {y: this.value, t: null, src: this};
-  }
+
   static defaultWidth = 100;
   static defaultHeight = 50;
   value: number;

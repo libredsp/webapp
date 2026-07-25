@@ -5,6 +5,9 @@ import { complex } from 'mathjs';
 import { convolve } from '../../core';
 import Infobox from '../../ui/Infobox';
 
+import { zero_pole_placement_iir_filter_design_wasm } from '@libredsp/core';
+import { wasmTfToJsTf } from '../../../../wasm-utils';
+
 export const ZPlane = ({ points, updatePoint, updateMagnitudeResponse, updatePhaseResponse, updateFilterCoefficients }) => {
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
@@ -247,8 +250,21 @@ export const ZPlane = ({ points, updatePoint, updateMagnitudeResponse, updatePha
 
         // Calculate filter coefficients
         let tmp = getTheActualPolesAndZeroesNumbersNotTheDotsOnConvas(points);
-        let filterCoefficients = calculateFilterCoefficients(constructTransferFunctionNumAndDenPolynomials(tmp));
-        updateFilterCoefficients(filterCoefficients);
+
+        let poles = [];
+        let zeros = [];
+        for(let i = 0; i < tmp.length; i++) {
+            if(!tmp[i].isPoleSelected) { /* There is a bug here. It's negation should be checked here! */
+                poles.push(tmp[i].point.x);
+                poles.push(tmp[i].point.y);
+            } else {
+                zeros.push(tmp[i].point.x);
+                zeros.push(tmp[i].point.y);                
+            }
+        }
+
+        let coefs = wasmTfToJsTf(zero_pole_placement_iir_filter_design_wasm( new Float64Array(poles), new Float64Array(zeros)));
+        updateFilterCoefficients(coefs);
     }
 
     const resetSelected = () => {

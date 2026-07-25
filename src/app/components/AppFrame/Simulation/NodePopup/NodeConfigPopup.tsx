@@ -190,7 +190,12 @@ export const NodeConfigurePopup = ({ isOpen, onClose, incomingPorts, node, setNo
                         <input
                             type="number"
                             value={stepAmplitude}
-                            onChange={e => setStepAmplitude(Number(e.target.value))}
+                            onChange={e => {
+                                const tmp = Number(e.target.value);
+                                setStepAmplitude(tmp);
+                                node.value = tmp;
+                                setNodes(prev => prev.map(n => n.id === node.id ? node : n));
+                            }}
                             className="w-full border-gray-400 border rounded p-1"
                         />
                     </div>

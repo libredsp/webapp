@@ -4,18 +4,27 @@ import { ZeroPole } from './components/AppFrame/ZeroPole/ZeroPole';
 import { FIRFilterDesign } from './components/AppFrame/FIRFilterDesign/FIRFilterDesign';
 import { IIRFilterDesign } from './components/AppFrame/IIRFilterDesign/IIRFilterDesign';
 import { LeastSqaureLinearPhaseFIRDesign } from './components/AppFrame/LeastSquareLinearPhaseFIRDesign/LeastSqaureLinearPhaseFIRDesign';
+import { ParksMcclellan }  from './components/AppFrame/ParksMcclellan/ParksMcclellan';
 import { Periodogram } from './components/AppFrame/Periodogram/Periodogram';
 import { Prompt } from './components/AppFrame/Prompt/Prompt';
 import { WelchsEstimate } from './components/AppFrame/WelchsEstimate/WelchsEstimate';
 import { Simulation } from './components/AppFrame/Simulation/Simulation';
+import init from '@libredsp/core';
 
 export default function Home() {
+  const [wasmReady, setWasmReady] = React.useState(false);
+
+  React.useEffect(() => {
+    init().then(() => setWasmReady(true));
+  }, []);
+
   const items = [
     { placeholder: "Filter Design", name: "title_filter_design" },
     { placeholder: "Zero-pole placement", name: "zero_pole" },
     { placeholder: "Windowing method", name: "fir_filter_design" },
     { placeholder: "Analog-to-digital transform", name: "iir_filter_design" },
     { placeholder: "Linear phase FIR-LS", name: "least_square_linear_phase_FIR" },
+    { placeholder: "Parks-Mcclellan Algorithm", name: "parks_mcclellan" },
     { placeholder: "separator", name: "seperator" },
 
     { placeholder: "Design & Simulation", name: "title_sim" },
@@ -30,6 +39,7 @@ export default function Home() {
     { placeholder: "Help?", name: "help" }
   ];
 
+
   const [selectedItem, setSelectedItem] = React.useState(items[1]);
 
   const addComponent = () => {
@@ -42,6 +52,8 @@ export default function Home() {
         return <IIRFilterDesign />;
       case "least_square_linear_phase_FIR":
         return <LeastSqaureLinearPhaseFIRDesign />;
+      case "parks_mcclellan":
+        return <ParksMcclellan />;        
       case "periodogram":
         return <Periodogram />
       case "welchs_estimate":
@@ -107,6 +119,9 @@ export default function Home() {
     }
   }
 
+  if (!wasmReady) {
+    return <div>Loading...</div>;
+  }
   return (
     <div className="relative flex h-screen z-20">
       {/* Sidebar */}

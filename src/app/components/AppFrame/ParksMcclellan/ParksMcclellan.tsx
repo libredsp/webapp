@@ -2,21 +2,22 @@
 import React, { useEffect, useState } from 'react'
 import { Plot } from '../Common/Plot'
 import FFT from 'fft.js';
-import { LS_LPFIRPanel } from './LS-LPFIRPanel';
+import { Panel } from './Panel';
 import { FilterTest } from '../Common/FilterTest';
-import { ZeroPad } from '../../core';
+import {  ZeroPad } from '../../core';
 import { Equation } from '../Common/Equation';
 
-import { least_squares_linear_phase_fir_wasm } from '@libredsp/core'
-import { chosenFilterTypeToCode, chosenWindowTypeToCode, wasmTfToJsTf } from '../../../../wasm-utils';
+import { parks_mcclellan_wasm } from '@libredsp/core';
+import { wasmTfToJsTf } from '../../../../wasm-utils';
 
-export const LeastSqaureLinearPhaseFIRDesign = () => {
+export const ParksMcclellan = () => {
     const [trigger, setTrigger] = useState(false);
 
     const [filterSize, setFilterSize] = useState(11);
-    const [frequencies, setFrequencies] = useState([0, 0.15, 0.85, 1]);
+    const [frequencies, setFrequencies] = useState([0, 0.1, 0.4, 3.14]);
+    const [filterType, setFilterType] = useState(1);
     const [amplitudes, setAmplitudes] = useState([1, 1, 0, 0]);
-    const [weights, setWeights] = useState([1, 100]);
+    const [weights, setWeights] = useState([1, 1, 1, 1]);
 
     const [filterCoefficients, setFilterCoefficients] = useState<{ num: any[]; den: any[] }>({ num: [1.0], den: [] });
 
@@ -26,10 +27,11 @@ export const LeastSqaureLinearPhaseFIRDesign = () => {
     });
 
     const run = () => {
-        let tf = wasmTfToJsTf(least_squares_linear_phase_fir_wasm(
+        let tf = wasmTfToJsTf(parks_mcclellan_wasm(
             new Float64Array(frequencies),
             new Float64Array(amplitudes),
             new Float64Array(weights),
+            filterType,
             filterSize
         ));
         setFilterCoefficients(tf);
@@ -58,12 +60,13 @@ export const LeastSqaureLinearPhaseFIRDesign = () => {
     return (
         <div className="flex flex-1 items-stretch justify-center">
             <div className="flex flex-col">
-                <LS_LPFIRPanel
+                <Panel
                     filterSize={filterSize} updateFilterSize={(e) => setFilterSize(e)}
                     frequencies={frequencies} updateFrequencies={(e) => setFrequencies(e)}
                     amplitudes={amplitudes} updateAmplitudes={(e) => setAmplitudes(e)}
                     weights={weights} updateWeights={(e) => setWeights(e)}
                     trigger={trigger} updateTrigger={(e) => setTrigger(e)}
+                    filterType={filterType} updateFilterType={setFilterType}                    
                 />
                 <FilterTest filterCoefficients={filterCoefficients} />
             </div>

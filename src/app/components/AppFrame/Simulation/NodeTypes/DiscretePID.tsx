@@ -24,44 +24,6 @@ export class DiscretePID extends NodeBase {
     this.integral_min = integral_min;
     this.integral_max = integral_max;
   }
-
-  execute(u: Signal[]): Signal {
-    const e = u[0]?.y ?? 0;
-
-    this.integral += e * this.Ts;
-    this.integral = this.clamp(this.integral);
-    console.log("I:", this.integral, this.integral_max)
-    const derivative = (e - this.e_prev) / this.Ts;
-
-    const pTerm = this.Kp * e;
-    const iTerm = this.Ki * this.integral;
-    const dTerm = this.Kd * derivative;
-
-    const output = pTerm + iTerm + dTerm;
-
-    this.e_prev = e;
-
-    return {
-      y: output,
-      t: u[0]?.t ?? 0,
-      src: this
-    };
-  }
-
-  setTs(Ts: number) {
-    this.Ts = Ts;
-  }
-  
-  init() {
-    this.integral = 0;
-    this.e_prev = 0;
-  }
-
-  clamp(integral) {
-    if(integral > this.integral_max) return this.integral_max;
-    if(integral < this.integral_min) return this.integral_min;
-    return integral;
-  }
   
   static defaultWidth = 100;
   static defaultHeight = 50;

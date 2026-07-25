@@ -3,9 +3,11 @@ import { Plot } from '../Common/Plot'
 import { Panel } from './Panel';
 import { FilterTest } from '../Common/FilterTest';
 import { IIREquation } from '../Common/IIREquation';
-import { AnalogToDigitalTransformationDesign, getImpulseResponse, ZeroPad } from '../../core';
+import { getImpulseResponse, ZeroPad } from '../../core';
 import FFT from 'fft.js';
 import { FilterType, AnalogToDigitalTransformationDesignMethod} from '../../core/enums';
+import { iir_filter_analog_to_digital_wasm } from '@libredsp/core';
+import { chosenFilterTypeToCode, chosenDesignMethodToCode, wasmTfToJsTf } from '../../../../wasm-utils';
 
 export const IIRFilterDesign = () => {
     const [trigger, setTrigger] = useState(false);
@@ -60,12 +62,15 @@ export const IIRFilterDesign = () => {
     }
 
     useEffect(() => {
-        const h_of_z = AnalogToDigitalTransformationDesign(chosenDesignMethodType,
-                                                chosenFilterType,
-                                                filterOrder,
-                                                lowCutoff,
-                                                highCutoff,
-                                                chebyshevEpsilonFactor);
+        const h_of_z = wasmTfToJsTf(
+            iir_filter_analog_to_digital_wasm(
+                chosenDesignMethodToCode(chosenDesignMethodType),
+                chosenFilterTypeToCode(chosenFilterType),
+            lowCutoff,
+            highCutoff,
+            filterOrder,
+            chebyshevEpsilonFactor
+        ));
         setFilterCoefficients(() => h_of_z);
         computeMagnitudeAndFreqOfTheFrequencyResponse(h_of_z);
 

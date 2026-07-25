@@ -5,7 +5,9 @@ import { Panel } from './Panel';
 import { WindowType, FilterType } from '../../core/enums';
 import { FilterTest } from '../Common/FilterTest';
 import { Equation } from '../Common/Equation';
-import { ZeroPad, WindowingMethodDesign } from '../../core';
+import { ZeroPad } from '../../core';
+import { windowing_method_wasm } from '@libredsp/core';
+import { chosenFilterTypeToCode, chosenWindowTypeToCode, wasmTfToJsTf } from '../../../../wasm-utils';
 
 export const FIRFilterDesign = () => {
     const [trigger, setTrigger] = useState(false);
@@ -28,12 +30,20 @@ export const FIRFilterDesign = () => {
             xValues: Array.from({ length: N / 2 }, (_, i) => i / N * 2 * Math.PI),
             yValues: Array.from({ length: N / 2 }, (_, i) => 0)
         };
-        const coef = WindowingMethodDesign(chosenFilterType, chosenWindowType, filterSize, lowCutoff, highCutoff);
+
+        const coef = wasmTfToJsTf(windowing_method_wasm(
+            filterSize,
+            chosenWindowTypeToCode(chosenWindowType),
+            chosenFilterTypeToCode(chosenFilterType),
+            lowCutoff,
+            highCutoff
+        ));
+
         setFilterCoefficients(coef);
 
         const fft = new FFT(N);
         const spectrum = fft.createComplexArray();
-        fft.realTransform(spectrum, ZeroPad(coef.num, N));
+        fft.realTransform(spectrum, ZeroPad(coef.num as number[], N));
 
         // Compute magnitude of freq. response
         const magnitude = new Array(N);

@@ -1,6 +1,131 @@
 import { DiscretePID, Display, Edge, Generator, NodeBase, FSFilter } from './NodeTypes';
 import { Plant } from './NodeTypes/Plant';
 import { Signal } from './NodeTypes/Signal';
+import { BlockType } from './NodeTypes';
+import { simulate_graph_wasm } from '@libredsp/core'
+
+type UISign = boolean | "+" | "-";
+
+interface UIEdge {
+    from: NodeBase;
+    to: NodeBase;
+    fromPos?: number;
+    toPos?: number;
+}
+
+interface NodeSpecification {
+    id: string;
+    type: string;
+    params: Record<string, unknown>;
+}
+
+interface EdgeSpecification {
+    from: string;
+    to: string;
+}
+
+interface GraphSpecJson {
+    nodes: NodeSpecification[];
+    edges: EdgeSpecification[];
+    simulation: { steps: number };
+}
+
+function normalizeSign(s: UISign): "+" | "-" {
+    if (s === "+" || s === "-") return s;
+    return s ? "+" : "-";
+}
+
+function toNodeSpecification(node: NodeBase, Ts: number): NodeSpecification {
+    const n = node as any;
+
+    switch (node.type) {
+        case BlockType.GENERATOR:
+            return { id: n.id, type: "Step", params: { value: n.value } };
+
+        case BlockType.SUM: {
+            const raw = n.sumSigns as Map<string, UISign>;
+            const signs: Record<string, "+" | "-"> = {};
+            raw.forEach((sign, refId) => {
+                signs[refId] = normalizeSign(sign);
+            });
+            return { id: n.id, type: "Sum", params: { signs } };
+        }
+
+        case BlockType.DISCRETE_PID:
+            return {
+                id: n.id,
+                type: "DiscretePID",
+                params: {
+                    kp: n.Kp,
+                    ki: n.Ki,
+                    kd: n.Kd,
+                    dt: Ts,
+                    out_max: n.integral_max,
+                    out_min: n.integral_min,
+                },
+            };
+
+        case BlockType.PLANT:
+            return {
+                id: n.id,
+                type: "Plant",
+                params: {
+                    transfer_function: { num: n.num, den: n.den },
+                    sampling_period: Ts,
+                    dt: n.dt,
+                },
+            };
+
+        case BlockType.FSFILTER:
+            return {
+                id: n.id,
+                type: "Filter",
+                params: {
+                    transfer_function: {
+                        num: n.num ?? [1],
+                        den: n.den ?? [1],
+                    },
+                },
+            };
+
+        case BlockType.MODIFIER:
+            return {
+                id: n.id,
+                type: "Modifier",
+                params: { mean: n.mean, std_dev: n.std },
+            };
+
+        case BlockType.DISPLAY:
+            return {
+                id: n.id,
+                type: "Display",
+                params: n.outputFile ? { output_file: n.outputFile } : {},
+            };
+
+        default:
+            throw new Error(`unknown node type: ${node.type}`);
+    }
+}
+
+function orderNodesForSpecification(nodes: NodeBase[]): NodeBase[] {
+    const sums = nodes.filter(n => n.type === BlockType.SUM);
+    const nonSums = nodes.filter(n => n.type !== BlockType.SUM);
+    return [...nonSums, ...sums];
+}
+
+export function toGraphSpecification(
+    nodes: NodeBase[],
+    edges: UIEdge[],
+    steps: number,
+    Ts: number
+): GraphSpecJson {
+    const ordered = orderNodesForSpecification(nodes);
+    return {
+        nodes: ordered.map(n => toNodeSpecification(n, Ts)),
+        edges: edges.map((e) => ({ from: e.from.id, to: e.to.id })),
+        simulation: { steps },
+    };
+}
 
 export const simulate = (
     nodes: NodeBase[],
@@ -12,45 +137,23 @@ export const simulate = (
 ) => {
     validate(nodes, edges);
 
-    const topo = topoSort(nodes, edges);
-    if (!topo) throw new Error("A cycle was found in the graph.");
-
-    init(nodes);
-    setTs(nodes, Ts);
-
-    const nodeMap = new Map<string, NodeBase>();
-    for (const n of nodes) nodeMap.set(n.id, n);
-
-    const parents = new Map<string, string[]>();
-    for (const edge of edges) {
-        if (!parents.has(edge.to.id)) parents.set(edge.to.id, []);
-        parents.get(edge.to.id)!.push(edge.from.id);
-    }
-
-    const output = new Map<string, Signal>();
-
-    for (let step = 0; step < simulationSteps; step++) {
-        for (const node of topo) {
-            const parentIds = parents.get(node.id) || [];
-            const input: Signal[] = [];
-
-            for (const parentId of parentIds) {
-                const parentOutput = output.get(parentId);
-                if (parentOutput) input.push(parentOutput);
-            }
-
-            console.log("Executing: " + node.id + " with input: " + input.map(e => String(e.y)).join(','));
-
-            const nodeOutput = node.execute(input);
-
-            console.log("Output: " + nodeOutput.y);
-            output.set(node.id, nodeOutput);
+    const spec = toGraphSpecification(nodes, edges, simulationSteps, Ts);
+    const json = JSON.stringify(spec);
+    const result = simulate_graph_wasm(json) as Map<string, number[]>;
+    const updatedNodes = nodes.map(node => {
+        const values = result.get(node.id);
+        if (node.type === BlockType.DISPLAY && values) {
+            const copy = Object.create(Object.getPrototypeOf(node));
+            Object.assign(copy, node);
+            copy.graphY = values;
+            copy.graphX = values.map((_, i) => Math.round(i * Ts * 100) / 100);
+            return copy;
         }
-    }
-
-    setNodes([...nodes]);
+        return node;
+    });
+    setNodes(updatedNodes);
     setSimFinishTrigger((_) => true);
-    return output;
+    return result;
 };
 
 function validate(nodes: NodeBase[], edges: Edge[]) {
@@ -63,63 +166,5 @@ function validate(nodes: NodeBase[], edges: Edge[]) {
         if ((n instanceof Display || n instanceof DiscretePID) && n.inDegree > 1) {
             throw new Error(`${n.constructor.name} should only have one input.`);
         }
-    });
-}
-
-function topoSort(nodes: NodeBase[], edges: Edge[]): NodeBase[] | null {
-    const adjList = edgeListToAdjList(nodes, edges);
-
-    const inDegree = new Map<NodeBase, number>();
-    for (const node of nodes) inDegree.set(node, 0);
-    for (const edge of edges) {
-        if (!(edge.from.displayName != "Plant")) {
-            inDegree.set(edge.to, inDegree.get(edge.to)! + 1);
-        }
-    }
-
-    const queue: NodeBase[] = [];
-    for (const node of nodes) if (inDegree.get(node) === 0) queue.push(node);
-
-    const order: NodeBase[] = [];
-    while (queue.length > 0) {
-        const node = queue.shift()!;
-        order.push(node);
-
-        for (const next of adjList.get(node.id)!) {
-            const deg = inDegree.get(next)! - 1;
-            inDegree.set(next, deg);
-            if (deg == 0) queue.push(next);
-        }
-    }
-
-    return order.length == nodes.length ? order : null;
-}
-
-function edgeListToAdjList(nodes: NodeBase[], edges: Edge[]): Map<string, NodeBase[]> {
-    const adjList = new Map<string, NodeBase[]>();
-
-    for (const node of nodes) {
-        adjList.set(node.id, []);
-    }
-
-    for (const edge of edges) {
-        adjList.get(edge.from.id)!.push(edge.to);
-    }
-
-    return adjList;
-}
-
-
-const init = (nodes) => {
-    nodes.forEach(node => {
-        if (typeof node.init == "function") {
-            node.init();
-        }
-    })
-}
-
-const setTs = (nodes, Ts) => {
-    nodes.forEach(node => {
-        if (typeof node.setTs == "function") { node.setTs(Ts) } ''
     });
 }

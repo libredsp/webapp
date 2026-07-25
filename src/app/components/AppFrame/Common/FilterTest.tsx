@@ -387,7 +387,7 @@ export const FilterTest = ({ filterCoefficients }) => {
                   checked={addNoiseChecked}
                   onChange={handleAddNoise}
                 />
-                <span className="text-gray-900 dark:text-white">Add Gaussian Noise</span>
+                <span className="text-gray-900">Add Gaussian Noise</span>
               </label>
             </div>
             <Button text="Test Audio" onClick={() => { setTestAudio(!testAudio) }} color="gray" />

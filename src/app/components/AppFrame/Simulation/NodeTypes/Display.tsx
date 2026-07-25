@@ -3,7 +3,7 @@ import { Signal } from './Signal';
 
 export class Display extends NodeBase {
   constructor(id: string, x: number, y: number, graphX = [], graphY = [], displayName = "🖥️", width = 100, height = 50) {
-    super(id, displayName, x, y, BlockType.FSFILTER, width, height);
+    super(id, displayName, x, y, BlockType.DISPLAY, width, height);
     this.graphX = graphX;
     this.graphY = graphY;
   }
