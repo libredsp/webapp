@@ -37,7 +37,7 @@ For spectrum estimation, the app can receive:
 Afterwards, the app estimates power spectrum desnsity (PSD) via periodogram or Welch's method.
 
 ## Getting Started
-To use the app, simply visit [libredsp.github.io/workbench](https://LibreDSP.github.io/).
+To use the app, simply visit [libredsp.github.io/workspace](https://LibreDSP.github.io/).
 Alternatively, to install and run the app locally, make sure you have a recent version of [Node](https://nodejs.org/en) installed.
 Afterwards:
 
