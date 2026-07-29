@@ -11,6 +11,7 @@ The application supports designing digital filters using the following methods:
 - Windowing methods for FIR filter design
 - Analog-to-digital IIR filter design using Butterworth and Chebyshev filters
 - Weighted least-squares design of linear-phase FIR filters
+- Parks-Mcclellan Algorithm to design equiripple filters
 
 After a filter is designed, the application:
 
