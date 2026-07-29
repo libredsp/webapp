@@ -6,13 +6,13 @@ export enum FilterType {
 }
 
 export enum WindowType {
-    RECTANGULAR = "rectangular",
-    HAMMING = "hamming",
-    HAN = "han",
-    BARTLETT = "bartlett"
+    RECTANGULAR = "Rectangular",
+    HAMMING = "Hamming",
+    HAN = "Han",
+    BARTLETT = "Bartlett"
 }
 
 export enum AnalogToDigitalTransformationDesignMethod {
-    BUTTERWORTH = "butterworth",
-    CHEBYSHEV = "chebyshev"
+    BUTTERWORTH = "Butterworth",
+    CHEBYSHEV = "Chebyshev"
 }

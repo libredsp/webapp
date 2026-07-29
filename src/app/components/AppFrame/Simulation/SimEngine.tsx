@@ -40,7 +40,7 @@ function toNodeSpecification(node: NodeBase, Ts: number): NodeSpecification {
 
     switch (node.type) {
         case BlockType.GENERATOR:
-            return { id: n.id, type: "Step", params: { value: n.value } };
+            return { id: n.id, type: "Generator", params: { ...n.generatorType } };
 
         case BlockType.SUM: {
             const raw = n.sumSigns as Map<string, UISign>;
@@ -138,6 +138,7 @@ export const simulate = (
     validate(nodes, edges);
 
     const spec = toGraphSpecification(nodes, edges, simulationSteps, Ts);
+    console.log(spec)
     const json = JSON.stringify(spec);
     const result = simulate_graph_wasm(json) as Map<string, number[]>;
     const updatedNodes = nodes.map(node => {

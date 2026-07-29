@@ -18,34 +18,30 @@ export const Simulation = () => {
 
     useEffect(() => {
         const initNodes = [
-            new Generator("step", 100, 130, 2),
+            new Generator("gen", 100, 130, 2, "Gen", 100, 50, { type: 'sine', n: 100, frequency: 5, amplitude: 2, phase: 0 }),
+            new Generator("wgen", 100, 230, 2, "Noise Gen", 100, 50, { type: 'noise', n: 100, mean: 0, standard_deviation: 0.2 }),
             new Sum("sum", 250, 130),
-            new DiscretePID("pid", 350, 130, 2),
-            new Plant("plant", 500, 130, [2, 5], [1, 3, 2]),
-            new Display("disp", 700, 130),
-            new Modifier("mod", 380, 230, 0.1, 0),
+            new FSFilter("pid", 350, 130, [1.0], [0.0550, 0.0895, 0.1208, 0.1446, 0.1575, 0.1575, 0.1446, 0.1208, 0.0895, 0.0550]),
+            new Display("disp", 550, 130),
         ];
         const initEdgeList = [
-            { from: initNodes[0], to: initNodes[1], fromPos: 1, toPos: 3 },
+            { from: initNodes[0], to: initNodes[2], fromPos: 1, toPos: 3 },
             { from: initNodes[1], to: initNodes[2], fromPos: 1, toPos: 3 },
             { from: initNodes[2], to: initNodes[3], fromPos: 1, toPos: 3 },
             { from: initNodes[3], to: initNodes[4], fromPos: 1, toPos: 3 },
-
-            { from: initNodes[3], to: initNodes[5], fromPos: 2, toPos: 1 },
-            { from: initNodes[5], to: initNodes[1], fromPos: 3, toPos: 2 },
         ];
 
-        (initNodes[1] as Sum).setSign(initNodes[5].id, "-");
-        (initNodes[1] as Sum).setSign(initNodes[0].id, "+");
+        (initNodes[2] as Sum).setSign(initNodes[0].id, "+");
+        (initNodes[2] as Sum).setSign(initNodes[1].id, "+");
 
         initNodes[0].increaseOutDegree();
-        initNodes[1].increaseInDegree();
-
-        initNodes[1].increaseOutDegree();
         initNodes[2].increaseInDegree();
 
-        initNodes[2].increaseOutDegree();
+        initNodes[1].increaseOutDegree();
         initNodes[3].increaseInDegree();
+
+        initNodes[3].increaseOutDegree();
+        initNodes[4].increaseInDegree();
 
         setPlantExists(true);
         setNodes(initNodes);
@@ -202,25 +198,27 @@ export const Simulation = () => {
         } catch (e) {
             alert(e.message);
         }
+
+        
     }
 
     return (
         <>
             <div className="w-[calc(100vw-230px)] mr-5 flex justify-between fixed bg-white z-50 pl-3">
                 <div className="flex">
-                    <button title='Add step function'              className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_GENERATOR)}>Step</button>
-                    <button title='Add dynamic plant'              className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_PLANT)}>Plant</button>
-                    <button title='Add sum block'                  className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_SUM)}>Sum</button>
-                    <button title='Add discrete PID block'         className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_DISCRETE_PID)}>PID</button>
-                    <button title='Add modifier block'             className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_MODIFIER)}>Mod</button>
+                    <button title='Add step function' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_GENERATOR)}>Step</button>
+                    <button title='Add dynamic plant' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_PLANT)}>Plant</button>
+                    <button title='Add sum block' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_SUM)}>Sum</button>
+                    <button title='Add discrete PID block' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_DISCRETE_PID)}>PID</button>
+                    <button title='Add modifier block' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_MODIFIER)}>Mod</button>
                     <button title='Add frequency selective filter' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_FSFILTER)}>FLT</button>
                     {/* <button className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_FUSION)}>FSN</button> */}
-                    <button title='Add display block'              className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_DISPLAY)}>🖥️</button>
+                    <button title='Add display block' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white text-xs" onClick={() => setSelectedMode(selectionModeEnum.ADD_DISPLAY)}>🖥️</button>
                     <div className="m-1 h-10 w-1.5 bg-gray-300 w-[5px]"></div>
-                    <button title='Add junction'                   className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold" onClick={() => setSelectedMode(selectionModeEnum.ADD_JUNCTION)}>&#9679;</button>
-                    <button title='Remove element'                 className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold" onClick={() => setSelectedMode(selectionModeEnum.REMOVE)}>-</button>
-                    <button title='Move element'                   className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white " onClick={() => setSelectedMode(selectionModeEnum.MOVE)}>&#10021;</button>
-                    <button title='Make connection'                className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold " onClick={() => setSelectedMode(selectionModeEnum.MAKE_CONNECTION)}>&#8702;</button>
+                    <button title='Add junction' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold" onClick={() => setSelectedMode(selectionModeEnum.ADD_JUNCTION)}>&#9679;</button>
+                    <button title='Remove element' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold" onClick={() => setSelectedMode(selectionModeEnum.REMOVE)}>-</button>
+                    <button title='Move element' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white " onClick={() => setSelectedMode(selectionModeEnum.MOVE)}>&#10021;</button>
+                    <button title='Make connection' className="m-1 w-10 h-10 rounded bg-gray-500 hover:bg-gray-600 text-white font-bold " onClick={() => setSelectedMode(selectionModeEnum.MAKE_CONNECTION)}>&#8702;</button>
                     {showSimFinishMessage && <p className="text-green-600 mt-3 ml-4">Simluation Done!</p>}
                 </div>
                 <div>

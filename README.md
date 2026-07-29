@@ -1,4 +1,4 @@
-# LibreDSP Workbench
+# LibreDSP Workspace
 An interactive DSP software that performs:
 - Design and visualization of digital filters
 - Hybrid simulation of dynamic systems
